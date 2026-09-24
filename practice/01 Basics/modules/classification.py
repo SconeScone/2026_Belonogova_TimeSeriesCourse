@@ -1,5 +1,7 @@
 import numpy as np
 
+from typing import Self
+
 from modules.metrics import *
 from modules.utils import z_normalize
 
@@ -65,7 +67,12 @@ class TimeSeriesKNN:
 
         dist = 0
 
-        # INSERT YOUR CODE
+        if self.metric == "euclidean":
+            dist = 
+        elif self.metric == "dtw":
+            pass
+        else:
+            raise RuntimeError("Unknown metric.")
 
         return dist
 
@@ -84,6 +91,8 @@ class TimeSeriesKNN:
         """
 
         neighbors = []
+
+        
 
         # INSERT YOUR CODE
 
@@ -105,7 +114,8 @@ class TimeSeriesKNN:
 
         y_pred = []
 
-        # INSERT YOUR CODE
+        for x in X_test:
+            dist = self._find_neighbors(x)
 
         return np.array(y_pred)
 

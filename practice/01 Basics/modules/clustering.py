@@ -20,7 +20,6 @@ class TimeSeriesHierarchicalClustering:
     """
 
     def __init__(self, n_clusters: int = 3, method: str = 'complete') -> None:
-
         self.n_clusters: int = n_clusters
         self.method: str = method
         self.model: AgglomerativeClustering | None = None
@@ -38,7 +37,7 @@ class TimeSeriesHierarchicalClustering:
 
         counts = np.zeros(self.model.children_.shape[0])
         n_samples = len(self.model.labels_)
-
+        
         for i, merge in enumerate(self.model.children_):
             current_count = 0
             for child_idx in merge:
@@ -65,8 +64,13 @@ class TimeSeriesHierarchicalClustering:
         -------
         self: the fitted model
         """
-
-       # INSERT YOUR CODE
+        
+        model = AgglomerativeClustering(self.n_clusters, metric="precomputed", linkage=self.method, compute_distances=True)
+        model.fit(distance_matrix)
+        self.model = model
+        # Метки кластеров для каждой точки.
+        self.labels_ = self.model.labels_
+        self.linkage_matrix = self._create_linkage_matrix()
 
         return self
 

@@ -3,7 +3,8 @@ import pandas as pd
 import math
 import cv2
 import imutils
-from google.colab.patches import cv2_imshow
+# from google.colab.patches import cv2_imshow
+import matplotlib.pyplot as plt
 
 
 class Image2TimeSeries:
@@ -19,7 +20,7 @@ class Image2TimeSeries:
         self.angle_step: int = angle_step
 
 
-    def _img_preprocess(self, img: np.ndarray) -> np.ndarray:
+    def _img_preprocess(self, img: np.ndarray, is_visualize: bool) -> np.ndarray:
         """
         Preprocess the raw image: convert to grayscale, inverse, blur slightly, and threshold it
         
@@ -32,7 +33,33 @@ class Image2TimeSeries:
         prep_img: image after preprocessing
         """
 
-        # INSERT YOUR CODE
+        gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        inv_img = 255 - gray_img
+        filtered_img = cv2.bilateralFilter(inv_img, 5, 75, 75)
+        _, prep_img = cv2.threshold(filtered_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+
+        if is_visualize:
+            # Отображение преобразований изображения.
+            plt.figure(figsize=(3 * 5, 4))
+            plt.suptitle("Этапы обработки изображения.")
+            plt.subplot(1, 5, 1)
+            plt.title("Исходное изображение.")
+            plt.imshow(img)
+            plt.subplot(1, 5, 2)
+            plt.title("Изображение в оттенках серого.")
+            plt.imshow(gray_img, cmap="gray")
+            plt.subplot(1, 5, 3)
+            plt.title("Инвертированное изображение.")
+            plt.imshow(inv_img, cmap="gray")
+            plt.subplot(1, 5, 4)
+            plt.title("Сглаженное изображение.")
+            plt.imshow(filtered_img, cmap="gray")
+            plt.subplot(1, 5, 5)
+            plt.title("Чёрно-белое изображение.")
+            plt.imshow(prep_img, cmap="gray")
+            plt.tight_layout()
+            plt.show()
 
         return prep_img
 
@@ -164,7 +191,8 @@ class Image2TimeSeries:
         for i in range(len(edge_coordinates)):
             cv2.drawContours(img, np.array([[center, edge_coordinates[i]]]), -1, (255, 0, 255), 4)
 
-        cv2_imshow(imutils.resize(img, width=200))
+        # cv2_imshow(imutils.resize(img, width=200))
+        plt.imshow(imutils.resize(img, width=200))
 
 
     def convert(self, img: np.ndarray, is_visualize: bool = False) -> np.ndarray:
@@ -183,7 +211,7 @@ class Image2TimeSeries:
 
         ts = []
 
-        prep_img = self._img_preprocess(img)
+        prep_img = self._img_preprocess(img, is_visualize)
         contour = self._get_contour(prep_img)
         center = self._get_center(contour)
         edge_coordinates = self._get_edge_coordinates(contour.squeeze(), center)
