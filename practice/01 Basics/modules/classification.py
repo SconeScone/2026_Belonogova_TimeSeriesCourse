@@ -6,9 +6,10 @@ from modules.metrics import *
 from modules.utils import z_normalize
 
 
-default_metrics_params = {'euclidean': {'normalize': True},
-                         'dtw': {'normalize': True, 'r': 0.05}
-                         }
+default_metrics_params = {
+    'euclidean': {'normalize': True},
+    'dtw': {'normalize': True, 'r': 0.05}
+}
 
 class TimeSeriesKNN:
     """
@@ -19,17 +20,15 @@ class TimeSeriesKNN:
     n_neighbors: number of neighbors
     metric: distance measure between time series
              Options: {euclidean, dtw}
-    metric_params: dictionary containing parameters for the distance metric being used
+    metric_params: dictionary containing parameters for the distance metric being used (e.g. {'normalize': False})
     """
     
     def __init__(self, n_neighbors: int = 3, metric: str = 'euclidean', metric_params: dict | None = None) -> None:
-
         self.n_neighbors: int = n_neighbors
         self.metric: str = metric
         self.metric_params: dict | None = default_metrics_params[metric].copy()
         if metric_params is not None:
-            self.metric_params.update(metric_params)
-
+            self.metric_params.update(metric_params)  # e.g. {'normalize': False}
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray) -> Self:
         """
@@ -50,7 +49,6 @@ class TimeSeriesKNN:
 
         return self
 
-
     def _distance(self, x_train: np.ndarray, x_test: np.ndarray) -> float:
         """
         Compute distance between the train and test samples
@@ -68,14 +66,22 @@ class TimeSeriesKNN:
         dist = 0
 
         if self.metric == "euclidean":
-            dist = 
+            is_normalized = self.metric_params["normalize"]
+            if is_normalized:
+                dist = norm_ED_distance(x_train, x_test)
+            else:
+                dist = ED_distance(x_train, x_test)
         elif self.metric == "dtw":
-            pass
+            is_normalized = self.metric_params["normalize"]
+            r = self.metric_params["r"]
+            if is_normalized:
+                x_train = z_normalize(x_train)
+                x_test = z_normalize(x_test)
+            dist = DTW_distance(x_train, x_test, r)
         else:
             raise RuntimeError("Unknown metric.")
 
         return dist
-
 
     def _find_neighbors(self, x_test: np.ndarray) -> list[tuple[float, int]]:
         """
@@ -92,12 +98,13 @@ class TimeSeriesKNN:
 
         neighbors = []
 
-        
+        for neighbor, cls in zip(self.X_train, self.Y_train):
+            dist = self._distance(neighbor, x_test)  # Расстояние между двумя временными рядами.
+            neighbors.append((dist, cls))  # (расстояние_до_соседа, класс_соседа).
 
-        # INSERT YOUR CODE
+        neighbors.sort(key=lambda t: t[0])  # Сортировка соседей в порядке неубывания расстояния до них.
 
-        return neighbors
-
+        return neighbors[:self.n_neighbors]
 
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         """
@@ -115,7 +122,14 @@ class TimeSeriesKNN:
         y_pred = []
 
         for x in X_test:
-            dist = self._find_neighbors(x)
+            nearest_neighbors = self._find_neighbors(x)
+            cls_counts = {}
+            for _, cls in nearest_neighbors:
+                if cls in cls_counts:
+                    cls_counts[cls] += 1
+                else:
+                    cls_counts[cls] = 1
+            y_pred.append(max(cls_counts.items(), key=lambda t: t[1])[0])
 
         return np.array(y_pred)
 
