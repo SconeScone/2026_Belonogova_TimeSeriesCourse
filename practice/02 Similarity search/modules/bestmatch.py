@@ -143,6 +143,8 @@ class NaiveBestMatchFinder(BestMatchFinder):
         if (len(ts_data.shape) != 2): # time series set
             ts_data = sliding_window(ts_data, len(query))
 
+        # ts_data - матрица подпоследовательностей временного ряда размеров N x m, 
+        # где N - количество подпоследовательностей длины m.
         N, m = ts_data.shape
         excl_zone = self._calculate_excl_zone(m)
 
@@ -153,9 +155,20 @@ class NaiveBestMatchFinder(BestMatchFinder):
             'index' : [],
             'distance' : []
         }
-        
-        # INSERT YOUR CODE
 
+        if self.is_normalize:
+            query = z_normalize(query)
+
+        for i in range(len(dist_profile)):
+            subseq = z_normalize(ts_data[i]) if self.is_normalize else ts_data[i]
+            dist = DTW_distance(subseq, query, self.r)
+            if dist < bsf:
+                dist_profile[i] = dist
+                # {'indices': [], 'distances': []} 
+                bestmatch = topK_match(dist_profile, excl_zone, self.topK, bsf)
+                if len(bestmatch["distances"]) == self.topK:
+                    bsf = np.max(bestmatch["distances"])
+                
         return bestmatch
 
 
