@@ -11,7 +11,7 @@ plotly.offline.init_notebook_mode(connected=True)
 from modules.mp import *
 
 
-def heads_tails(consumptions: dict, cutoff, house_idx: list) -> dict, dict:
+def heads_tails(consumptions: dict, cutoff, house_idx: list) -> tuple[dict, dict]:
     """
     Split time series into two parts: Head and Tail
 
@@ -53,10 +53,38 @@ def meter_swapping_detection(heads: dict, tails: dict, house_idx: dict, m: int) 
     """
 
     eps = 0.001
-
     min_score = {}
 
-    # INSERT YOUR CODE
+    diag_vals = {}
+    for i in house_idx:
+        h_i = heads[f"H_{i}"][1].values
+        t_i = tails[f"T_{i}"][1].values
+
+        min_dist = np.min(compute_mp(h_i, m, ts2=t_i)["mp"])
+        diag_vals[i] = min_dist + eps
+
+    min_swap_score = np.inf
+    mp_ij = None
+    ii = -1
+    jj = -1
+    for i in house_idx:
+        h_i = heads[f"H_{i}"][1].values
+
+        for j in house_idx:
+            if i != j:
+                t_j = tails[f"T_{j}"][1].values
+                mp = compute_mp(h_i, m, ts2=t_j)
+                swap_score = np.min(mp["mp"]) / diag_vals[i]
+                if swap_score < min_swap_score:
+                    min_swap_score = swap_score
+                    ii = i
+                    jj = j
+                    mp_ij = mp
+
+    min_score["mss"] = min_swap_score
+    min_score['i'] = ii
+    min_score['j'] = jj
+    min_score["mp_j"] = mp_ij
     
     return min_score
 
